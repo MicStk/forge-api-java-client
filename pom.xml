@@ -9,7 +9,7 @@
     <name>forge-java-sdk</name>
     <description>SDK of Autodesk Forge</description>
     <url>https://github.com/Autodesk-Forge/forge-api-java-client</url>
-    <version>1.0.2</version>
+    <version>1.1.0</version>
     <prerequisites>
         <maven>2.2.0</maven>
     </prerequisites>
@@ -214,6 +214,10 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+                    <additionalOptions>-Xdoclint:none</additionalOptions>
+                    <additionalJOption>-Xdoclint:none</additionalJOption>
+                </configuration>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>
