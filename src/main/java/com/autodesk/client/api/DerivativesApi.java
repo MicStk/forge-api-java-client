@@ -25,26 +25,16 @@
 package com.autodesk.client.api;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import com.autodesk.client.ApiClient;
 import com.autodesk.client.ApiException;
 import com.autodesk.client.ApiResponse;
 import com.autodesk.client.Configuration;
 import com.autodesk.client.Pair;
-import com.autodesk.client.StringUtil.JacksonMapper;
 import com.autodesk.client.auth.Authentication;
 import com.autodesk.client.auth.Credentials;
-import com.autodesk.client.model.Formats;
-import com.autodesk.client.model.Job;
-import com.autodesk.client.model.JobPayload;
-import com.autodesk.client.model.Manifest;
-import com.autodesk.client.model.Metadata;
-import com.autodesk.client.model.Result;
+import com.autodesk.client.model.*;
 import com.sun.jersey.api.client.GenericType;
 
 public class DerivativesApi {
@@ -632,4 +622,106 @@ public class DerivativesApi {
 		return apiClient.invokeAPI(oauth2, credentials, localVarPath, "POST", localVarQueryParams, localVarPostBody,
 				localVarHeaderParams, localVarFormParams, localVarAccept, localVarContentType, localVarReturnType);
 	}
+
+	/**
+	 * Translate a source IFC file to SVF/SVF2 using conversionMethod v4.
+	 * Same as translate(...), but it injects:
+	 *
+	 *  "advanced": { "conversionMethod": "v4" }
+	 *
+	 * into each SVF/SVF2 format. IFC 4 files can not be properly translated
+	 * with the default legacy conversion method
+	 */
+	public ApiResponse<Job> translateIfc(JobPayload job,
+										 Boolean xAdsForce,
+										 Authentication oauth2,
+										 Credentials credentials)
+			throws ApiException, Exception {
+
+		if (job == null) {
+			throw new ApiException(400, "Missing the required parameter 'job' when calling translateIfc");
+		}
+
+		JobPayloadInput input = job.getInput();
+		if (input == null || input.getUrn() == null || input.getUrn().isEmpty()) {
+			throw new ApiException(400, "JobPayload.input.urn is required");
+		}
+
+		JobPayloadOutput output = job.getOutput();
+		if (output == null || output.getFormats() == null || output.getFormats().isEmpty()) {
+			throw new ApiException(400, "JobPayload.output.formats is required");
+		}
+
+		JobPayloadItem fmt = output.getFormats().get(0);
+
+		String type = "svf";
+		if (fmt.getType() != null) {
+			type = fmt.getType().toString().toLowerCase();
+		}
+
+		String viewStr = "3d";
+		if (fmt.getViews() != null && !fmt.getViews().isEmpty()) {
+			JobPayloadItem.ViewsEnum v = fmt.getViews().get(0);
+			if (v == JobPayloadItem.ViewsEnum._2D) {
+				viewStr = "2d";
+			} else if (v == JobPayloadItem.ViewsEnum._3D) {
+				viewStr = "3d";
+			}
+		}
+
+		String rootFilename = input.getRootFilename();
+		boolean hasRootFilename = rootFilename != null && !rootFilename.trim().isEmpty();
+
+		Map<String, Object> inputMap = new HashMap<>();
+		inputMap.put("urn", input.getUrn());
+		if (hasRootFilename) {
+			inputMap.put("rootFilename", rootFilename);
+		}
+
+		Map<String, Object> advancedMap = new HashMap<>();
+		advancedMap.put("conversionMethod", "v4");
+
+		Map<String, Object> formatMap = new HashMap<>();
+		formatMap.put("type", type);
+		formatMap.put("views", Collections.singletonList(viewStr));
+		formatMap.put("advanced", advancedMap);
+
+		Map<String, Object> outputMap = new HashMap<>();
+		outputMap.put("formats", Collections.singletonList(formatMap));
+		outputMap.put("destination", job.getOutput().destination());
+
+		Map<String, Object> jobMap = new HashMap<>();
+		jobMap.put("input", inputMap);
+		jobMap.put("output", outputMap);
+
+		Object localVarPostBody = jobMap;
+
+		String localVarPath = "/modelderivative/v2/designdata/job".replaceAll("\\{format\\}", "json");
+
+		List<Pair> localVarQueryParams = new ArrayList<>();
+		Map<String, String> localVarHeaderParams = new HashMap<>();
+		Map<String, Object> localVarFormParams = new HashMap<>();
+
+		if (xAdsForce != null) {
+			localVarHeaderParams.put("x-ads-force", apiClient.parameterToString(xAdsForce));
+		}
+
+		final String[] localVarAccepts = {"application/vnd.api+json", "application/json"};
+		final String localVarAccept = apiClient.selectHeaderAccept(localVarAccepts);
+
+		final String[] localVarContentTypes = {"application/json"};
+		final String localVarContentType = apiClient.selectHeaderContentType(localVarContentTypes);
+
+		GenericType<Job> localVarReturnType = new GenericType<Job>() {};
+
+		return apiClient.invokeAPI(
+				oauth2, credentials,
+				localVarPath, "POST",
+				localVarQueryParams, localVarPostBody,
+				localVarHeaderParams, localVarFormParams,
+				localVarAccept, localVarContentType,
+				localVarReturnType
+		);
+	}
+
 }
